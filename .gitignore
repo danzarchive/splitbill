@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Temporary/debug directories
+.playwright-mcp/
+.sisyphus/
+fix-*.mjs
+test-*.mjs
+schema.sql

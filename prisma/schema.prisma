@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Bill {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  taxRate     Float    @default(10)
+  serviceRate Float    @default(0)
+  currency    String   @default("IDR")
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime // Will be set in application code (createdAt + 30 days)
+  
+  participants Participant[]
+  items       Item[]
+  
+  @@index([expiresAt])
+}
+
+model Participant {
+  id     String @id @default(cuid())
+  name   String
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+  billId String
+  splits Split[]
+  
+  @@index([billId])
+}
+
+model Item {
+  id       String  @id @default(cuid())
+  name     String
+  price    Int     // in IDR cents
+  quantity Int     @default(1)
+  bill     Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  billId   String
+  splits   Split[]
+  
+  @@index([billId])
+}
+
+model Split {
+  id            String      @id @default(cuid())
+  amount        Int         // in IDR cents
+  item          Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId        String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId String
+  
+  @@unique([itemId, participantId])
+  @@index([itemId])
+  @@index([participantId])
+}

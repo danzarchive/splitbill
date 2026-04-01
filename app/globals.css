@@ -3,24 +3,28 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --color-primary: #000000;
+  --color-primary-hover: #1a1a1a;
+  --color-pastel-pink: #FFE4E1;
+  --color-pastel-peach: #FFDAB9;
+  --color-pastel-yellow: #FFF8DC;
+  --color-pastel-green: #E8F5E9;
+  --color-pastel-blue: #E3F2FD;
+  --color-pastel-purple: #F3E5F5;
+  --color-success: #4CAF50;
+  --color-success-bg: #E8F5E9;
+  --color-warning: #FF9800;
+  --color-warning-bg: #FFF3E0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-poppins), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
-  background: var(--background);
+  background: #f5f5f5;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, sans-serif;
 }
