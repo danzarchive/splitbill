@@ -31,7 +31,7 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto bg-white min-h-screen shadow-sm">
+      <div className="max-w-md mx-auto bg-white min-h-screen shadow-sm flex flex-col">
         <header className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
           <Link href={`/${locale}`}>
             <button type="button" className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -47,7 +47,7 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
           <LanguageToggle />
         </header>
         
-        <main className="px-5 py-4 space-y-4">
+        <main className="px-5 py-4 space-y-4 flex-1">
           <div className="p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Total</span>
@@ -91,10 +91,15 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
           
           <ItemList 
             billId={bill.id} 
-            items={bill.items} 
+            items={bill.items}
             participants={bill.participants}
           />
         </main>
+
+        <footer className="py-4 text-center border-t border-gray-100">
+          <p className="text-xs text-gray-400">Dibuat dengan SplitBill</p>
+          <p className="text-xs text-gray-400 mt-1">bayarbill.vercel.app</p>
+        </footer>
       </div>
     </div>
   )

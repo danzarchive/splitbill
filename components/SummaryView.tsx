@@ -244,7 +244,7 @@ export function SummaryView({ bill }: SummaryViewProps) {
 
         <div className="border-t-2 border-black py-4 text-center bg-gray-50">
           <p className="text-xs text-gray-400">Dibuat dengan SplitBill</p>
-          <p className="text-xs text-gray-400 mt-1">splitbill.vercel.app</p>
+          <p className="text-xs text-gray-400 mt-1">bayarbill.vercel.app</p>
         </div>
       </div>
 
