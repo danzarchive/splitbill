@@ -11,7 +11,7 @@
 
 ---
 
-## ✨ Fitur
+## ✨ Features
 
 - 📝 **Buat Bill Instan** - Tambah tagihan dengan judul dan deskripsi
 - 👥 **Manajemen Peserta** - Tambah/hapus orang yang patungan
@@ -26,10 +26,10 @@
 
 ---
 
-## 🚀 Teknologi
+## 🚀 Tech Stack
 
-| Stack | Teknologi |
-|-------|-----------|
+| Layer | Technology |
+|-------|------------|
 | **Framework** | [Next.js 16](https://nextjs.org) + App Router |
 | **Language** | [TypeScript](https://typescriptlang.org) |
 | **Styling** | [Tailwind CSS 4](https://tailwindcss.com) |
@@ -41,7 +41,7 @@
 
 ---
 
-## 📦 Instalasi
+## 📦 Installation
 
 ```bash
 # Clone repository
@@ -80,7 +80,7 @@ CRON_SECRET="random-secret-for-cleanup"
 
 ---
 
-## 📖 Cara Penggunaan
+## 📖 Usage
 
 1. **Buat Bill Baru** - Klik "Split Bill-in Aja" dan masukkan judul
 2. **Tambah Peserta** - Masukkan nama orang yang patungan
@@ -88,18 +88,6 @@ CRON_SECRET="random-secret-for-cleanup"
 4. **Atur Pembagian** - Pilih "Atur Pembagian" untuk tentuin siapa bayar apa
 5. **Lihat Ringkasan** - Klik "Lihat Detail" untuk total per orang
 6. **Export/Share** - Export gambar atau copy link untuk share
-
----
-
-## 🌐 Deployment
-
-Deploy ke [Vercel](https://vercel.com):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/danzarchive/splitbill)
-
-**Jangan lupa:**
-1. Tambah environment variables di Vercel Dashboard
-2. Setup cron job untuk `/api/cleanup` (daily)
 
 ---
 
