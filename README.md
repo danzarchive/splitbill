@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SplitBill
 
-## Getting Started
+[![Vercel](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=flat-square&logo=vercel)](https://bayarbill.vercel.app)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Tailwind](https://img.shields.io/badge/Tailwind-4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com)
 
-First, run the development server:
+> **Biar Ga Ada Yang Nombok** - Aplikasi web untuk membagi tagihan antar teman dengan mudah.
+
+[🇮🇩 **Live Demo** → bayarbill.vercel.app](https://bayarbill.vercel.app)
+
+---
+
+## ✨ Features
+
+- 📝 **Buat Bill Instan** - Tambah tagihan dengan judul dan deskripsi
+- 👥 **Manajemen Peserta** - Tambah/hapus orang yang patungan
+- 🍔 **Manajemen Item** - Input menu, harga, quantity
+- 💰 **Pembagian Otomatis** - Bagi rata atau atur manual per item
+- 🧾 **PPN & Service Charge** - Pajak 10% default, editable
+- 🖼️ **Export Gambar** - Simpan ringkasan sebagai PNG
+- 🌐 **Multi Bahasa** - Indonesia & English
+- 📱 **Mobile First** - Responsive design
+- 🗑️ **Auto Delete** - Bill hapus otomatis setelah 30 hari
+- 🔗 **Shareable Link** - Bagikan link ke teman
+
+---
+
+## 🚀 Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Framework** | [Next.js 16](https://nextjs.org) + App Router |
+| **Language** | [TypeScript](https://typescriptlang.org) |
+| **Styling** | [Tailwind CSS 4](https://tailwindcss.com) |
+| **Database** | [Turso](https://turso.tech) (SQLite) + [Prisma](https://prisma.io) |
+| **i18n** | [next-intl](https://next-intl-docs.vercel.app) |
+| **Export** | [html-to-image](https://github.com/bubkoo/html-to-image) |
+| **State** | [Zustand](https://zustand-demo.pmnd.rs) |
+| **Icons** | [Lucide React](https://lucide.dev) |
+
+---
+
+## 📦 Installation
 
 ```bash
+# Clone repository
+git clone https://github.com/danzarchive/splitbill.git
+cd splitbill
+
+# Install dependencies
+npm install
+
+# Setup environment
+# Copy .env.example ke .env dan isi dengan credentials Turso
+
+# Generate Prisma client
+npx prisma generate
+
+# Push database schema
+npx prisma db push
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔧 Environment Variables
 
-## Learn More
+Buat file `.env`:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+DATABASE_URL="libsql://your-db.turso.io"
+DATABASE_AUTH_TOKEN="your-turso-token"
+CRON_SECRET="random-secret-for-cleanup"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📖 Usage
 
-## Deploy on Vercel
+1. **Buat Bill Baru** - Klik "Split Bill-in Aja" dan masukkan judul
+2. **Tambah Peserta** - Masukkan nama orang yang patungan
+3. **Tambah Item** - Input nama menu, harga, dan quantity
+4. **Atur Pembagian** - Pilih "Atur Pembagian" untuk tentuin siapa bayar apa
+5. **Lihat Ringkasan** - Klik "Lihat Detail" untuk total per orang
+6. **Export/Share** - Export gambar atau copy link untuk share
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 License
+
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  Dibuat dengan ❤️ oleh <a href="https://github.com/danzarchive">@danzarchive</a>
+  <br>
+  <a href="https://bayarbill.vercel.app">bayarbill.vercel.app</a>
+</p>
