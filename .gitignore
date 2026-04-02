@@ -53,3 +53,4 @@ schema.sql
 # AI agent context files (project-specific)
 AGENTS.md
 CLAUDE.md
+PRD.md
