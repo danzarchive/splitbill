@@ -13,11 +13,22 @@ SplitBill adalah aplikasi web untuk membagi tagihan antar teman dengan mudah.
 ## Deployment to Vercel
 
 ### 1. Environment Variables
+
 Tambahkan di Vercel Dashboard:
+
+**Required:**
 ```
 DATABASE_URL="libsql://your-db.turso.io"
 DATABASE_AUTH_TOKEN="your-turso-token"
 CRON_SECRET="random-secret-for-cron"
+```
+
+**Optional:**
+```
+NEXT_PUBLIC_APP_URL="https://bayarbill.vercel.app"
+NEXT_PUBLIC_DEFAULT_CURRENCY="IDR"
+BILL_EXPIRY_DAYS="30"
+DEFAULT_TAX_RATE="10"
 ```
 
 ### 2. Build Settings

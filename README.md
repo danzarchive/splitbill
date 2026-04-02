@@ -73,10 +73,29 @@ Buka [http://localhost:3000](http://localhost:3000) di browser.
 Buat file `.env`:
 
 ```env
+# Database (Required)
 DATABASE_URL="libsql://your-db.turso.io"
 DATABASE_AUTH_TOKEN="your-turso-token"
-CRON_SECRET="random-secret-for-cleanup"
+
+# Security (Required)
+CRON_SECRET="random-secret-for-cleanup-api"
+
+# App Config (Optional)
+NEXT_PUBLIC_APP_URL="https://bayarbill.vercel.app"
+NEXT_PUBLIC_DEFAULT_CURRENCY="IDR"
+BILL_EXPIRY_DAYS="30"
+DEFAULT_TAX_RATE="10"
 ```
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | ✅ | - | Turso database URL |
+| `DATABASE_AUTH_TOKEN` | ✅ | - | Turso auth token |
+| `CRON_SECRET` | ✅ | - | Secret for cleanup API |
+| `NEXT_PUBLIC_APP_URL` | ❌ | Auto | Public app URL for share links |
+| `NEXT_PUBLIC_DEFAULT_CURRENCY` | ❌ | IDR | Default currency (IDR, USD, SGD) |
+| `BILL_EXPIRY_DAYS` | ❌ | 30 | Auto-delete bills after X days |
+| `DEFAULT_TAX_RATE` | ❌ | 10 | Default PPN percentage |
 
 ---
 
