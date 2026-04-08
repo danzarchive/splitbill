@@ -64,3 +64,55 @@ export async function validateSplits(itemId: string) {
     remaining,
   }
 }
+
+export async function batchUpsertItemSplits(
+  itemId: string,
+  splits: Array<{ participantId: string; amount: number }>,
+  billId: string
+) {
+  if (splits.some(s => s.amount <= 0)) {
+    return { success: false, error: 'All amounts must be positive' }
+  }
+  
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    include: { splits: true },
+  })
+  
+  if (!item) {
+    return { success: false, error: 'Item not found' }
+  }
+  
+  const itemTotal = item.price * item.quantity
+  const splitsTotal = splits.reduce((sum, s) => sum + s.amount, 0)
+  
+  if (splitsTotal !== itemTotal) {
+    return { 
+      success: false, 
+      error: `Splits total (${splitsTotal}) must equal item total (${itemTotal})` 
+    }
+  }
+  
+  try {
+    await prisma.$transaction([
+      prisma.split.deleteMany({
+        where: { itemId },
+      }),
+      prisma.split.createMany({
+        data: splits.map(s => ({
+          itemId,
+          participantId: s.participantId,
+          amount: s.amount,
+        })),
+      }),
+    ])
+    
+    revalidatePath(`/${billId}`)
+    return { success: true }
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to update splits' 
+    }
+  }
+}

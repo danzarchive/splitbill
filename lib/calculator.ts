@@ -147,3 +147,38 @@ export function validateSplitTotal(
     remaining,
   }
 }
+
+export interface LiveTotals {
+  subtotal: number
+  taxShare: number
+  serviceShare: number
+  total: number
+}
+
+export function liveTotals(
+  splits: { amount: number; item: { price: number; quantity: number; taxRate: number; serviceRate: number } }[]
+): LiveTotals {
+  let subtotal = 0
+  let taxShare = 0
+  let serviceShare = 0
+  
+  splits.forEach(split => {
+    const itemCalc = calculateItemTotal(
+      split.item.price,
+      split.item.quantity,
+      split.item.taxRate,
+      split.item.serviceRate
+    )
+    
+    const itemSubtotal = split.item.price * split.item.quantity
+    const splitRatio = split.amount / itemSubtotal
+    
+    subtotal += split.amount
+    taxShare += Math.round(itemCalc.tax * splitRatio)
+    serviceShare += Math.round(itemCalc.service * splitRatio)
+  })
+  
+  const total = subtotal + taxShare + serviceShare
+  
+  return { subtotal, taxShare, serviceShare, total }
+}
