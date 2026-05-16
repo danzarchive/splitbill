@@ -172,7 +172,7 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
     updateOptimistic(prev =>
       prev.map(item => {
         if (!selectedItems.includes(item.id)) return item
-        const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+        const pricePerUnit = item.price
         const qtyShares = distributeEvenly(item.quantity, participants.length)
         return {
           ...item,
@@ -191,7 +191,7 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
 
       await Promise.all(
         selectedItemsData.map(item => {
-          const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+          const pricePerUnit = item.price
           const qtyShares = distributeEvenly(item.quantity, participants.length)
           const splits = participants.map((p, i) => ({ participantId: p.id, amount: qtyShares[i] * pricePerUnit }))
           return batchAssignSplits(item.id, splits, billId)
@@ -250,7 +250,7 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
       prev.map(item => {
         if (!selectedItems.includes(item.id)) return item
         const hasParticipant = item.splits.some(s => s.participantId === participant.id)
-        const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+        const pricePerUnit = item.price
 
         if (hasParticipant) {
           const remaining = participants.filter(p => p.id !== participant.id)
@@ -286,7 +286,7 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
       await Promise.all(
         selectedItemsData.map(async (item) => {
           const hasParticipant = item.splits.some(s => s.participantId === participant.id)
-          const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+          const pricePerUnit = item.price
 
           if (hasParticipant) {
             const remainingParticipants = participants.filter(p => p.id !== participant.id)

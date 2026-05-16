@@ -49,7 +49,7 @@ export function ItemRowAccordion({
   onSaveSplits
 }: ItemRowAccordionProps) {
   const total = item.price * item.quantity
-  const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+  const pricePerUnit = item.price
 
   // Calculate current quantities from splits
   const currentQuantities = useState<Record<string, number>>(() => {

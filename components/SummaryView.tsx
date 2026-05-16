@@ -196,8 +196,7 @@ export function SummaryView({ bill }: SummaryViewProps) {
             const extraCharges = pt.taxShare + pt.serviceShare
 
             // Calculate item breakdown for this participant
-            const pricePerUnit = (item: { price: number; quantity: number }) =>
-              item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+            const pricePerUnit = (item: { price: number; quantity: number }) => item.price
 
             const itemBreakdown = bill.items
               .map(item => {
