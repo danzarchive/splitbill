@@ -1,7 +1,6 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { redirect } from 'next/navigation'
 import { calculateExpiryDate } from '@/lib/utils'
 
 export async function createBill(formData: FormData, locale: string) {
@@ -20,7 +19,7 @@ export async function createBill(formData: FormData, locale: string) {
     },
   })
 
-  redirect(`/${locale}/${bill.id}`)
+  return { success: true, billId: bill.id }
 }
 
 export async function getBill(id: string) {

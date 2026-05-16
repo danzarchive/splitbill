@@ -168,17 +168,17 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
 
     setIsBulkLoading(true)
 
-    // Optimistic: apply equal splits to selected items
+    // Optimistic: apply equal quantity splits to selected items
     updateOptimistic(prev =>
       prev.map(item => {
         if (!selectedItems.includes(item.id)) return item
-        const totalAmount = item.price * item.quantity
-        const shares = distributeEvenly(totalAmount, participants.length)
+        const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+        const qtyShares = distributeEvenly(item.quantity, participants.length)
         return {
           ...item,
           splits: participants.map((p, i) => ({
             id: 'temp-' + p.id + '-' + item.id,
-            amount: shares[i],
+            amount: qtyShares[i] * pricePerUnit,
             participantId: p.id,
             participant: p,
           })),
@@ -191,9 +191,9 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
 
       await Promise.all(
         selectedItemsData.map(item => {
-          const totalAmount = item.price * item.quantity
-          const shares = distributeEvenly(totalAmount, participants.length)
-          const splits = participants.map((p, i) => ({ participantId: p.id, amount: shares[i] }))
+          const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+          const qtyShares = distributeEvenly(item.quantity, participants.length)
+          const splits = participants.map((p, i) => ({ participantId: p.id, amount: qtyShares[i] * pricePerUnit }))
           return batchAssignSplits(item.id, splits, billId)
         })
       )
@@ -245,32 +245,33 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
     setIsBulkLoading(true)
 
     // Optimistic: toggle participant in all selected items
+    // Optimistic: toggle participant in all selected items
     updateOptimistic(prev =>
       prev.map(item => {
         if (!selectedItems.includes(item.id)) return item
         const hasParticipant = item.splits.some(s => s.participantId === participant.id)
-        const totalAmount = item.price * item.quantity
+        const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
 
         if (hasParticipant) {
           const remaining = participants.filter(p => p.id !== participant.id)
           if (remaining.length === 0) return { ...item, splits: [] }
-          const shares = distributeEvenly(totalAmount, remaining.length)
+          const qtyShares = distributeEvenly(item.quantity, remaining.length)
           return {
             ...item,
             splits: remaining.map((p, i) => ({
               id: 'temp-' + p.id + '-' + item.id,
-              amount: shares[i],
+              amount: qtyShares[i] * pricePerUnit,
               participantId: p.id,
               participant: p,
             })),
           }
         } else {
-          const shares = distributeEvenly(totalAmount, participants.length)
+          const qtyShares = distributeEvenly(item.quantity, participants.length)
           return {
             ...item,
             splits: participants.map((p, i) => ({
               id: 'temp-' + p.id + '-' + item.id,
-              amount: shares[i],
+              amount: qtyShares[i] * pricePerUnit,
               participantId: p.id,
               participant: p,
             })),
@@ -285,21 +286,20 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
       await Promise.all(
         selectedItemsData.map(async (item) => {
           const hasParticipant = item.splits.some(s => s.participantId === participant.id)
+          const pricePerUnit = item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
 
           if (hasParticipant) {
             const remainingParticipants = participants.filter(p => p.id !== participant.id)
             if (remainingParticipants.length === 0) {
               await batchRemoveSplits(item.splits.map(s => s.id), billId)
             } else {
-              const totalAmount = item.price * item.quantity
-              const shares = distributeEvenly(totalAmount, remainingParticipants.length)
-              const splits = remainingParticipants.map((p, i) => ({ participantId: p.id, amount: shares[i] }))
+              const qtyShares = distributeEvenly(item.quantity, remainingParticipants.length)
+              const splits = remainingParticipants.map((p, i) => ({ participantId: p.id, amount: qtyShares[i] * pricePerUnit }))
               await batchAssignSplits(item.id, splits, billId)
             }
           } else {
-            const totalAmount = item.price * item.quantity
-            const shares = distributeEvenly(totalAmount, participants.length)
-            const splits = participants.map((p, i) => ({ participantId: p.id, amount: shares[i] }))
+            const qtyShares = distributeEvenly(item.quantity, participants.length)
+            const splits = participants.map((p, i) => ({ participantId: p.id, amount: qtyShares[i] * pricePerUnit }))
             await batchAssignSplits(item.id, splits, billId)
           }
         })

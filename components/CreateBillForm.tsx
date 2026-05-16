@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { createBill } from '@/actions/bill-actions'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
 
 export function CreateBillForm() {
   const t = useTranslations('home')
   const locale = useLocale()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,10 +19,18 @@ export function CreateBillForm() {
     setIsLoading(true)
     setError(null)
 
-    const result = await createBill(formData, locale)
+    try {
+      const result = await createBill(formData, locale)
 
-    if (result && 'error' in result && result.error) {
-      setError(result.error as string)
+      if (result && 'error' in result && result.error) {
+        setError(result.error as string)
+        setIsLoading(false)
+      } else if (result && 'billId' in result && result.billId) {
+        router.push(`/${locale}/${result.billId}`)
+        // Don't set isLoading false — loading state persists during navigation
+      }
+    } catch {
+      setError('Terjadi kesalahan. Coba lagi.')
       setIsLoading(false)
     }
   }
@@ -65,9 +75,16 @@ export function CreateBillForm() {
         </Button>
         <Button
           type="submit"
-          isLoading={isLoading}
+          disabled={isLoading}
         >
-          {isLoading ? t('creating') : 'Buat'}
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {t('creating')}
+            </span>
+          ) : (
+            'Buat'
+          )}
         </Button>
       </div>
     </form>

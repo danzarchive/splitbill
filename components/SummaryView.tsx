@@ -194,22 +194,45 @@ export function SummaryView({ bill }: SummaryViewProps) {
           {participantTotals.map((pt, index) => {
             const avatarColor = pastelColors[index % pastelColors.length]
             const extraCharges = pt.taxShare + pt.serviceShare
+
+            // Calculate item breakdown for this participant
+            const pricePerUnit = (item: { price: number; quantity: number }) =>
+              item.quantity > 0 ? Math.round(item.price / item.quantity) : 0
+
+            const itemBreakdown = bill.items
+              .map(item => {
+                const split = item.splits.find(s => s.participantId === pt.participantId)
+                if (!split || split.amount <= 0) return null
+                const ppu = pricePerUnit(item)
+                const qty = ppu > 0 ? Math.round(split.amount / ppu) : 0
+                return qty > 0 ? `${qty} ${item.name}` : null
+              })
+              .filter(Boolean)
+              .join(' + ')
+
             return (
-              <div key={pt.participantId} className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-sm font-medium text-gray-700`}>
-                    {pt.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="font-medium text-gray-900">{pt.name}</span>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-gray-900">{formatCurrency(pt.total)}</div>
-                  {hasTaxOrService && extraCharges > 0 && (
-                    <div className="text-xs text-gray-500">
-                      {formatCurrency(pt.subtotal)} + {formatCurrency(extraCharges)}
+              <div key={pt.participantId} className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-sm font-medium text-gray-700`}>
+                      {pt.name.charAt(0).toUpperCase()}
                     </div>
-                  )}
+                    <span className="font-medium text-gray-900">{pt.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-gray-900">{formatCurrency(pt.total)}</div>
+                  </div>
                 </div>
+                {itemBreakdown && (
+                  <div className="ml-11 mt-1 text-xs text-gray-500">
+                    {itemBreakdown}
+                  </div>
+                )}
+                {hasTaxOrService && extraCharges > 0 && (
+                  <div className="ml-11 mt-0.5 text-xs text-gray-400">
+                    {formatCurrency(pt.subtotal)} + {formatCurrency(extraCharges)} pajak/service
+                  </div>
+                )}
               </div>
             )
           })}
