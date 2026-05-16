@@ -4,7 +4,7 @@ import { useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
-import { calculateParticipantTotals, calculateSimplifiedDebts } from '@/lib/calculator'
+import { calculateParticipantTotals } from '@/lib/calculator'
 import Link from 'next/link'
 import { ArrowLeft, Download } from 'lucide-react'
 
@@ -37,11 +37,11 @@ interface SummaryViewProps {
 
 const pastelColors = [
   'bg-[#FFE4E1]',
-  'bg-[#FFDAB9]', 
+  'bg-[#FFDAB9]',
   'bg-[#FFF8DC]',
   'bg-[#E8F5E9]',
   'bg-[#E3F2FD]',
-  'bg-[#F3E5F5]'
+  'bg-[#F3E5F5]',
 ]
 
 export function SummaryView({ bill }: SummaryViewProps) {
@@ -50,7 +50,7 @@ export function SummaryView({ bill }: SummaryViewProps) {
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const participantSplits = bill.participants.map(p => {
-    const splits = bill.items.flatMap(item => 
+    const splits = bill.items.flatMap(item =>
       item.splits
         .filter(s => s.participantId === p.id)
         .map(s => ({
@@ -68,18 +68,9 @@ export function SummaryView({ bill }: SummaryViewProps) {
 
   const participantTotals = calculateParticipantTotals(
     bill.participants,
-    participantSplits.flatMap(ps => 
+    participantSplits.flatMap(ps =>
       ps.splits.map(s => ({ ...s, participantId: ps.participant.id }))
     )
-  )
-
-  const debts = calculateSimplifiedDebts(
-    participantTotals.map(pt => ({
-      id: pt.participantId,
-      name: pt.name,
-      total: pt.total,
-      paid: 0,
-    }))
   )
 
   const grandTotal = participantTotals.reduce((sum, pt) => sum + pt.total, 0)
@@ -90,10 +81,10 @@ export function SummaryView({ bill }: SummaryViewProps) {
 
   async function handleExport() {
     if (!summaryRef.current) return
-    
+
     try {
       const { toPng } = await import('html-to-image')
-      
+
       const dataUrl = await toPng(summaryRef.current, {
         quality: 1.0,
         pixelRatio: 2,
@@ -105,7 +96,7 @@ export function SummaryView({ bill }: SummaryViewProps) {
           width: '300px',
         },
       })
-      
+
       const link = document.createElement('a')
       link.download = `splitbill-${bill.title}-${new Date().toISOString().split('T')[0]}.png`
       link.href = dataUrl
@@ -132,8 +123,8 @@ export function SummaryView({ bill }: SummaryViewProps) {
         {bill.description && <p className="text-sm text-gray-500 mt-1">{bill.description}</p>}
       </div>
 
-      <div 
-        ref={summaryRef} 
+      <div
+        ref={summaryRef}
         className="bg-white mx-auto"
         style={{ width: '300px', maxWidth: '100%' }}
       >
@@ -146,10 +137,10 @@ export function SummaryView({ bill }: SummaryViewProps) {
             <p className="text-sm text-gray-500 mt-1">{bill.description}</p>
           )}
           <p className="text-xs text-gray-400 mt-2">
-            {new Date(bill.createdAt).toLocaleDateString('id-ID', { 
-              day: 'numeric', 
-              month: 'long', 
-              year: 'numeric' 
+            {new Date(bill.createdAt).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
             })}
           </p>
         </div>
@@ -224,32 +215,14 @@ export function SummaryView({ bill }: SummaryViewProps) {
           })}
         </div>
 
-        {debts.length > 0 && (
-          <div className="border-t border-dashed border-gray-300 py-4 px-4">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Detail Transfer
-            </div>
-            {debts.map((debt) => (
-              <div key={`${debt.from}-${debt.to}`} className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium text-gray-900">{debt.from}</span>
-                  <span className="text-gray-400">→</span>
-                  <span className="font-medium text-gray-900">{debt.to}</span>
-                </div>
-                <span className="font-semibold text-gray-900">{formatCurrency(debt.amount)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="border-t-2 border-black py-4 text-center bg-gray-50">
           <p className="text-xs text-gray-400">Dibuat dengan SplitBill</p>
           <p className="text-xs text-gray-400 mt-1">bayarbill.vercel.app</p>
         </div>
       </div>
 
-      <Button 
-        onClick={handleExport} 
+      <Button
+        onClick={handleExport}
         className="w-64 mx-auto flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-medium bg-black text-white hover:bg-gray-800 transition-colors"
       >
         <Download className="w-5 h-5" />

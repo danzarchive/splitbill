@@ -11,7 +11,7 @@ export function ShareButton({ billId }: ShareButtonProps) {
   const [copied, setCopied] = useState(false)
 
   async function handleShare() {
-    const url = `${window.location.origin}/${billId}`
+    const url = window.location.href
 
     if (navigator.share) {
       try {
@@ -22,6 +22,7 @@ export function ShareButton({ billId }: ShareButtonProps) {
         })
         return
       } catch {
+        // user cancelled or share failed
       }
     }
 

@@ -1,3 +1,10 @@
+export function distributeEvenly(total: number, count: number): number[] {
+  if (count === 0) return []
+  const base = Math.floor(total / count)
+  const remainder = total - base * count
+  return Array.from({ length: count }, (_, i) => base + (i < remainder ? 1 : 0))
+}
+
 export interface ItemCalculation {
   subtotal: number
   tax: number

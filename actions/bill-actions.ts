@@ -1,18 +1,17 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { calculateExpiryDate } from '@/lib/utils'
 
-export async function createBill(formData: FormData) {
+export async function createBill(formData: FormData, locale: string) {
   const title = formData.get('title') as string
   const description = formData.get('description') as string
-  
+
   if (!title || title.trim().length === 0) {
     return { success: false, error: 'Title is required' }
   }
-  
+
   const bill = await prisma.bill.create({
     data: {
       title: title.trim(),
@@ -20,8 +19,8 @@ export async function createBill(formData: FormData) {
       expiresAt: calculateExpiryDate(),
     },
   })
-  
-  redirect(`/${bill.id}`)
+
+  redirect(`/${locale}/${bill.id}`)
 }
 
 export async function getBill(id: string) {
@@ -48,7 +47,7 @@ export async function getBill(id: string) {
       },
     },
   })
-  
+
   return bill
 }
 
@@ -60,8 +59,6 @@ export async function updateTaxRates(billId: string, taxRate: number, serviceRat
       serviceRate: Math.max(0, Math.min(100, serviceRate)),
     },
   })
-  
-  revalidatePath(`/${billId}`)
 }
 
 export async function deleteExpiredBills() {
@@ -72,6 +69,6 @@ export async function deleteExpiredBills() {
       },
     },
   })
-  
+
   return { deleted: result.count }
 }

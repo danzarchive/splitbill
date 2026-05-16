@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { addItem, deleteItem } from '@/actions/item-actions'
-import { assignSplit, removeSplit } from '@/actions/split-actions'
+import { batchAssignSplits, batchRemoveSplits } from '@/actions/split-actions'
+import { distributeEvenly } from '@/lib/calculator'
 import { Button } from '@/components/ui/button'
 import { ItemRowAccordion } from './ItemRowAccordion'
 import { Package, Users, RotateCcw, Square, SquareCheck, X } from 'lucide-react'
@@ -36,11 +38,11 @@ interface Props {
 
 const pastelColors = [
   'bg-[#FFE4E1]',
-  'bg-[#FFDAB9]', 
+  'bg-[#FFDAB9]',
   'bg-[#FFF8DC]',
   'bg-[#E8F5E9]',
   'bg-[#E3F2FD]',
-  'bg-[#F3E5F5]'
+  'bg-[#F3E5F5]',
 ]
 
 const itemExamples = [
@@ -52,8 +54,9 @@ const itemExamples = [
   'Sate',
 ]
 
-export function ItemList({ billId, items, participants }: Props) {
+export function ItemList({ billId, items: serverItems, participants }: Props) {
   const t = useTranslations('bill')
+  const router = useRouter()
   const [isAdding, setIsAdding] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newItem, setNewItem] = useState({ name: '', price: '', quantity: '1' })
@@ -62,118 +65,91 @@ export function ItemList({ billId, items, participants }: Props) {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [isBulkLoading, setIsBulkLoading] = useState(false)
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null)
+  const [optimistic, setOptimistic] = useState<Item[] | null>(null)
+
+  const items = optimistic ?? serverItems
+
+  // Sync with server data when it changes (after router.refresh)
+  useEffect(() => {
+    setOptimistic(null)
+  }, [serverItems])
 
   const placeholderItem = itemExamples[items.length % itemExamples.length]
+
+  function updateOptimistic(fn: (prev: Item[]) => Item[]) {
+    setOptimistic(prev => fn(prev ?? serverItems))
+  }
 
   async function handleAdd() {
     if (!newItem.name || !newItem.price) {
       setError('Nama Dan Harga Item Wajib Diisi')
       return
     }
-    
+
     const priceNum = parseFloat(newItem.price)
     if (Number.isNaN(priceNum) || priceNum <= 0) {
       setError('Harga Harus Lebih Dari 0')
       return
     }
-    
+
     setIsSubmitting(true)
     setError('')
-    
+
+    const priceInCents = Math.round(priceNum * 100)
+    const qty = parseInt(newItem.quantity, 10) || 1
+
+    // Optimistic: add immediately with temp id
+    const tempItem: Item = {
+      id: 'temp-' + Date.now(),
+      name: newItem.name,
+      price: priceInCents,
+      quantity: qty,
+      splits: [],
+    }
+    updateOptimistic(prev => [...prev, tempItem])
+
     try {
-      const priceInCents = Math.round(priceNum * 100)
       const result = await addItem(billId, {
         name: newItem.name,
         price: priceInCents,
-        quantity: parseInt(newItem.quantity, 10) || 1,
+        quantity: qty,
       })
-      
-      if (!result.success) {
-        setError(result.error || 'Gagal Menambahkan Item')
-        setIsSubmitting(false)
-      } else {
+
+      if (result.success) {
         setNewItem({ name: '', price: '', quantity: '1' })
         setIsAdding(false)
-        setIsSubmitting(false)
+        router.refresh()
+      } else {
+        setOptimistic(null) // Rollback
+        setError(result.error || 'Gagal Menambahkan Item')
       }
     } catch {
+      setOptimistic(null) // Rollback
       setError('Terjadi Kesalahan. Coba Lagi.')
+    } finally {
       setIsSubmitting(false)
     }
   }
 
   async function handleDelete(itemId: string) {
-    await deleteItem(itemId, billId)
+    // Optimistic: remove immediately
+    updateOptimistic(prev => prev.filter(item => item.id !== itemId))
+    setSelectedItems(prev => prev.filter(id => id !== itemId))
+
+    try {
+      const result = await deleteItem(itemId, billId)
+      if (!result.success) {
+        setOptimistic(null) // Rollback
+      }
+      router.refresh()
+    } catch {
+      setOptimistic(null) // Rollback
+    }
   }
 
-async function handleToggleParticipant(item: Item, participant: Participant) {
-      setLoadingItemId(item.id)
-      try {
-        const totalAmount = item.price * item.quantity
-        const currentCount = item.splits.length
-        const newCount = currentCount + 1
-        const sharePerPerson = Math.floor(totalAmount / newCount)
-        
-        await assignSplit(item.id, participant.id, sharePerPerson, billId)
-        
-        for (const split of item.splits) {
-          if (split.participantId !== participant.id) {
-            await assignSplit(item.id, split.participantId, sharePerPerson, billId)
-          }
-        }
-      } catch {
-        console.error('Toggle failed:', new Error('Toggle operation failed'))
-      } finally {
-        setLoadingItemId(null)
-      }
-    }
-
-async function handleSplitEqually(item: Item) {
-      setLoadingItemId(item.id)
-      try {
-        const totalAmount = item.price * item.quantity
-        const count = participants.length
-        const sharePerPerson = Math.floor(totalAmount / count)
-        
-        for (const participant of participants) {
-          await assignSplit(item.id, participant.id, sharePerPerson, billId)
-        }
-      } catch (err) {
-        console.error('Split equally failed:', err)
-      } finally {
-        setLoadingItemId(null)
-      }
-    }
-
-async function handleClearAll(item: Item) {
-      setLoadingItemId(item.id)
-      try {
-        for (const split of item.splits) {
-          await removeSplit(split.id, billId)
-        }
-      } catch (err) {
-        console.error('Clear all failed:', err)
-      } finally {
-        setLoadingItemId(null)
-      }
-    }
-
-      
-async function handleAssignToOne(item: Item, participant: Participant) {
-      setLoadingItemId(item.id)
-      try {
-        const totalAmount = item.price * item.quantity
-        await assignSplit(item.id, participant.id, totalAmount, billId)
-      } catch (err) {
-        console.error('Assign to one failed:', err)
-      } finally {
-        setLoadingItemId(null)
-      }
-    }
-
   function toggleItemSelection(itemId: string) {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
+    setSelectedItems(prev =>
+      prev.includes(itemId)
         ? prev.filter(id => id !== itemId)
         : [...prev, itemId]
     )
@@ -189,24 +165,43 @@ async function handleAssignToOne(item: Item, participant: Participant) {
 
   async function bulkSplitEqually() {
     if (selectedItems.length === 0 || participants.length === 0) return
-    
+
     setIsBulkLoading(true)
-    
+
+    // Optimistic: apply equal splits to selected items
+    updateOptimistic(prev =>
+      prev.map(item => {
+        if (!selectedItems.includes(item.id)) return item
+        const totalAmount = item.price * item.quantity
+        const shares = distributeEvenly(totalAmount, participants.length)
+        return {
+          ...item,
+          splits: participants.map((p, i) => ({
+            id: 'temp-' + p.id + '-' + item.id,
+            amount: shares[i],
+            participantId: p.id,
+            participant: p,
+          })),
+        }
+      })
+    )
+
     try {
       const selectedItemsData = items.filter(item => selectedItems.includes(item.id))
-      
-      for (const item of selectedItemsData) {
-        const totalAmount = item.price * item.quantity
-        const count = participants.length
-        const sharePerPerson = Math.floor(totalAmount / count)
-        
-        for (const participant of participants) {
-          await assignSplit(item.id, participant.id, sharePerPerson, billId)
-        }
-      }
-      
+
+      await Promise.all(
+        selectedItemsData.map(item => {
+          const totalAmount = item.price * item.quantity
+          const shares = distributeEvenly(totalAmount, participants.length)
+          const splits = participants.map((p, i) => ({ participantId: p.id, amount: shares[i] }))
+          return batchAssignSplits(item.id, splits, billId)
+        })
+      )
+
       setSelectedItems([])
+      router.refresh()
     } catch (err) {
+      setOptimistic(null) // Rollback
       console.error('Bulk split failed:', err)
     } finally {
       setIsBulkLoading(false)
@@ -215,20 +210,29 @@ async function handleAssignToOne(item: Item, participant: Participant) {
 
   async function bulkClearAll() {
     if (selectedItems.length === 0) return
-    
+
     setIsBulkLoading(true)
-    
+
+    // Optimistic: clear splits from selected items
+    updateOptimistic(prev =>
+      prev.map(item => {
+        if (!selectedItems.includes(item.id)) return item
+        return { ...item, splits: [] }
+      })
+    )
+
     try {
       const selectedItemsData = items.filter(item => selectedItems.includes(item.id))
-      
-      for (const item of selectedItemsData) {
-        for (const split of item.splits) {
-          await removeSplit(split.id, billId)
-        }
+      const allSplitIds = selectedItemsData.flatMap(item => item.splits.map(s => s.id))
+
+      if (allSplitIds.length > 0) {
+        await batchRemoveSplits(allSplitIds, billId)
       }
-      
+
       setSelectedItems([])
+      router.refresh()
     } catch (err) {
+      setOptimistic(null) // Rollback
       console.error('Bulk clear failed:', err)
     } finally {
       setIsBulkLoading(false)
@@ -237,46 +241,85 @@ async function handleAssignToOne(item: Item, participant: Participant) {
 
   async function bulkToggleParticipant(participant: Participant) {
     if (selectedItems.length === 0 || participants.length === 0) return
-    
+
     setIsBulkLoading(true)
-    
-    try {
-      const selectedItemsData = items.filter(item => selectedItems.includes(item.id))
-      
-      for (const item of selectedItemsData) {
-        const existingSplit = item.splits.find(s => s.participantId === participant.id)
+
+    // Optimistic: toggle participant in all selected items
+    updateOptimistic(prev =>
+      prev.map(item => {
+        if (!selectedItems.includes(item.id)) return item
+        const hasParticipant = item.splits.some(s => s.participantId === participant.id)
         const totalAmount = item.price * item.quantity
-        
-        if (existingSplit) {
-          await removeSplit(existingSplit.id, billId)
+
+        if (hasParticipant) {
+          const remaining = participants.filter(p => p.id !== participant.id)
+          if (remaining.length === 0) return { ...item, splits: [] }
+          const shares = distributeEvenly(totalAmount, remaining.length)
+          return {
+            ...item,
+            splits: remaining.map((p, i) => ({
+              id: 'temp-' + p.id + '-' + item.id,
+              amount: shares[i],
+              participantId: p.id,
+              participant: p,
+            })),
+          }
         } else {
-          const currentCount = item.splits.length
-          const newCount = currentCount + 1
-          const sharePerPerson = Math.floor(totalAmount / newCount)
-          
-          await assignSplit(item.id, participant.id, sharePerPerson, billId)
-          
-          for (const split of item.splits) {
-            if (split.participantId !== participant.id) {
-              await assignSplit(item.id, split.participantId, sharePerPerson, billId)
-            }
+          const shares = distributeEvenly(totalAmount, participants.length)
+          return {
+            ...item,
+            splits: participants.map((p, i) => ({
+              id: 'temp-' + p.id + '-' + item.id,
+              amount: shares[i],
+              participantId: p.id,
+              participant: p,
+            })),
           }
         }
-      }
+      })
+    )
+
+    try {
+      const selectedItemsData = items.filter(item => selectedItems.includes(item.id))
+
+      await Promise.all(
+        selectedItemsData.map(async (item) => {
+          const hasParticipant = item.splits.some(s => s.participantId === participant.id)
+
+          if (hasParticipant) {
+            const remainingParticipants = participants.filter(p => p.id !== participant.id)
+            if (remainingParticipants.length === 0) {
+              await batchRemoveSplits(item.splits.map(s => s.id), billId)
+            } else {
+              const totalAmount = item.price * item.quantity
+              const shares = distributeEvenly(totalAmount, remainingParticipants.length)
+              const splits = remainingParticipants.map((p, i) => ({ participantId: p.id, amount: shares[i] }))
+              await batchAssignSplits(item.id, splits, billId)
+            }
+          } else {
+            const totalAmount = item.price * item.quantity
+            const shares = distributeEvenly(totalAmount, participants.length)
+            const splits = participants.map((p, i) => ({ participantId: p.id, amount: shares[i] }))
+            await batchAssignSplits(item.id, splits, billId)
+          }
+        })
+      )
+
+      router.refresh()
     } catch (err) {
+      setOptimistic(null) // Rollback
       console.error('Bulk toggle failed:', err)
     } finally {
       setIsBulkLoading(false)
     }
   }
 
-
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-medium text-gray-400 tracking-wider">
         {t('items')}
       </h2>
-      
+
       {isAdding ? (
         <div className="bg-white rounded-xl p-4 space-y-3">
           <input
@@ -326,7 +369,7 @@ async function handleAssignToOne(item: Item, participant: Participant) {
             >
               Batal
             </Button>
-            <Button 
+            <Button
               onClick={handleAdd}
               disabled={isSubmitting || !newItem.name || !newItem.price}
             >
@@ -384,39 +427,55 @@ async function handleAssignToOne(item: Item, participant: Participant) {
       <div className={`space-y-2 ${selectedItems.length > 0 ? 'pb-48' : ''}`}>
         {items.map((item) => {
           const isExpanded = expandedItem === item.id
+          const isOptimisticItem = item.id.startsWith('temp-')
 
           return (
-            <ItemRowAccordion
-              key={item.id}
-              item={item}
-              participants={participants}
-              pastelColors={pastelColors}
-              isSelected={selectedItems.includes(item.id)}
-              isExpanded={isExpanded}
-              onToggleExpand={() => setExpandedItem(isExpanded ? null : item.id)}
-              onToggleSelection={() => toggleItemSelection(item.id)}
-              onDelete={() => handleDelete(item.id)}
-              onSaveSplits={async (newSplits) => {
-                setLoadingItemId(item.id)
-                try {
-                  for (const oldSplit of item.splits) {
-                    const newSplit = newSplits.find(s => s.participantId === oldSplit.participantId)
-                    if (!newSplit || newSplit.amount === 0) {
-                      await removeSplit(oldSplit.id, billId)
+            <div key={item.id} className={isOptimisticItem ? 'opacity-60' : ''}>
+              <ItemRowAccordion
+                item={item}
+                participants={participants}
+                pastelColors={pastelColors}
+                isSelected={selectedItems.includes(item.id)}
+                isExpanded={isExpanded}
+                onToggleExpand={() => setExpandedItem(isExpanded ? null : item.id)}
+                onToggleSelection={() => toggleItemSelection(item.id)}
+                onDelete={() => handleDelete(item.id)}
+                onSaveSplits={async (newSplits) => {
+                  setLoadingItemId(item.id)
+
+                  // Optimistic: update this item's splits immediately
+                  updateOptimistic(prev =>
+                    prev.map(it =>
+                      it.id === item.id
+                        ? {
+                            ...it,
+                            splits: newSplits
+                              .filter(s => s.amount > 0)
+                              .map(s => ({
+                                id: 'temp-' + s.participantId + '-' + item.id,
+                                amount: s.amount,
+                                participantId: s.participantId,
+                                participant: participants.find(p => p.id === s.participantId)!,
+                              })),
+                          }
+                        : it
+                    )
+                  )
+
+                  try {
+                    const result = await batchAssignSplits(item.id, newSplits, billId)
+                    if (result.success) {
+                      router.refresh()
+                    } else {
+                      setOptimistic(null) // Rollback
                     }
+                  } finally {
+                    setLoadingItemId(null)
+                    setExpandedItem(null)
                   }
-                  
-                  for (const newSplit of newSplits) {
-                    if (newSplit.amount > 0) {
-                      await assignSplit(item.id, newSplit.participantId, newSplit.amount, billId)
-                    }
-                  }
-                } finally {
-                  setLoadingItemId(null)
-                  setExpandedItem(null)
-                }
-              }}
-            />
+                }}
+              />
+            </div>
           )
         })}
       </div>
@@ -433,7 +492,7 @@ async function handleAssignToOne(item: Item, participant: Participant) {
               <X className="w-4 h-4" />
             </button>
           </div>
-          
+
           <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
             <button
               type="button"
@@ -454,7 +513,7 @@ async function handleAssignToOne(item: Item, participant: Participant) {
               Kosongkan Semua
             </button>
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
             <span className="text-xs text-white/60 w-full mb-1">Tambah/ Hapus Orang:</span>
             {participants.map((p, pIndex) => {

@@ -1,29 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { createBill } from '@/actions/bill-actions'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
 export function CreateBillForm() {
   const t = useTranslations('home')
+  const locale = useLocale()
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   async function handleSubmit(formData: FormData) {
     setIsLoading(true)
     setError(null)
-    
-    const result = await createBill(formData)
-    
+
+    const result = await createBill(formData, locale)
+
     if (result && 'error' in result && result.error) {
       setError(result.error as string)
       setIsLoading(false)
     }
   }
-  
+
   if (!isOpen) {
     return (
       <button
@@ -36,7 +37,7 @@ export function CreateBillForm() {
       </button>
     )
   }
-  
+
   return (
     <form action={handleSubmit} className="space-y-4">
       {error && (
@@ -44,7 +45,7 @@ export function CreateBillForm() {
           {error}
         </div>
       )}
-      
+
       <input
         name="title"
         placeholder={t('formTitlePlaceholder')}
@@ -52,7 +53,7 @@ export function CreateBillForm() {
         disabled={isLoading}
         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-gray-400 text-base"
       />
-      
+
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"

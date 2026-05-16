@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { getBill } from '@/actions/bill-actions'
 import { ParticipantManager } from '@/components/ParticipantManager'
@@ -5,18 +6,23 @@ import { ItemList } from '@/components/ItemList'
 import { BillSettings } from '@/components/BillSettings'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ShareButton } from '@/components/ShareButton'
+import { formatCurrency } from '@/lib/utils'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
+function SectionSkeleton() {
+  return <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+}
+
 export default async function BillPage({ params }: { params: Promise<{ id: string; locale: string }> }) {
   const { id, locale } = await params
-  
+
   if (!id) {
     notFound()
   }
-  
+
   const bill = await getBill(id)
-  
+
   if (!bill) {
     notFound()
   }
@@ -46,13 +52,13 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
           </div>
           <LanguageToggle />
         </header>
-        
+
         <main className="px-5 py-4 space-y-4 flex-1">
           <div className="p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Total</span>
               <span className="text-xl font-bold text-gray-900">
-                Rp{(totalAmount / 100).toLocaleString('id-ID')}
+                {formatCurrency(totalAmount)}
               </span>
             </div>
             {totalItemCount > 0 && (
@@ -70,30 +76,36 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
 
           <div className="grid grid-cols-2 gap-2">
             <ShareButton billId={bill.id} />
-            <Link 
+            <Link
               href={`/${locale}/${bill.id}/summary`}
               className="flex items-center justify-center font-medium rounded-lg bg-black text-white hover:bg-gray-800 px-4 py-3 text-base"
             >
               Lihat Detail
             </Link>
           </div>
-          
-          <BillSettings 
-            billId={bill.id} 
-            taxRate={bill.taxRate} 
-            serviceRate={bill.serviceRate} 
-          />
 
-          <ParticipantManager 
-            billId={bill.id} 
-            participants={bill.participants} 
-          />
-          
-          <ItemList 
-            billId={bill.id} 
-            items={bill.items}
-            participants={bill.participants}
-          />
+          <Suspense fallback={<SectionSkeleton />}>
+            <BillSettings
+              billId={bill.id}
+              taxRate={bill.taxRate}
+              serviceRate={bill.serviceRate}
+            />
+          </Suspense>
+
+          <Suspense fallback={<SectionSkeleton />}>
+            <ParticipantManager
+              billId={bill.id}
+              participants={bill.participants}
+            />
+          </Suspense>
+
+          <Suspense fallback={<SectionSkeleton />}>
+            <ItemList
+              billId={bill.id}
+              items={bill.items}
+              participants={bill.participants}
+            />
+          </Suspense>
         </main>
 
         <footer className="py-4 text-center border-t border-gray-100">

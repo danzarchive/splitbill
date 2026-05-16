@@ -15,54 +15,47 @@ export interface SplitSliderProps {
   pastelColors: string[]
   onSave: (splits: { participantId: string; amount: number }[]) => Promise<void>
   onCancel: () => void
-  onAmountChange?: (participantId: string, amount: number) => void
   currency?: string
 }
 
-const pastelColors = [
-  'bg-[#FFE4E1]',
-  'bg-[#FFDAB9]', 
-  'bg-[#FFF8DC]',
-  'bg-[#E8F5E9]',
-  'bg-[#E3F2FD]',
-  'bg-[#F3E5F5]'
-]
-
-export function SplitSlider({ 
-  participants, 
-  itemTotal, 
+export function SplitSlider({
+  participants,
+  itemTotal,
   pastelColors,
   onSave,
   onCancel,
-  onAmountChange,
-  currency = 'IDR' 
+  currency = 'IDR'
 }: SplitSliderProps) {
-  const [localParticipants, setLocalParticipants] = React.useState(participants.map(p => ({...p, amount: p.amount || 0})))
+  const [localParticipants, setLocalParticipants] = React.useState(
+    participants.map(p => ({ ...p, amount: p.amount || 0 }))
+  )
+  const [isSaving, setIsSaving] = React.useState(false)
 
   const handleChange = (id: string, amount: number) => {
-    setLocalParticipants(prev => prev.map(p => p.id === id ? {...p, amount} : p))
-    if (onAmountChange) onAmountChange(id, amount)
+    setLocalParticipants(prev => prev.map(p => p.id === id ? { ...p, amount } : p))
   }
 
   const handleSave = async () => {
-    const splits = localParticipants.map(p => ({participantId: p.id, amount: p.amount}))
-    await onSave(splits)
+    setIsSaving(true)
+    try {
+      const splits = localParticipants.map(p => ({ participantId: p.id, amount: p.amount }))
+      await onSave(splits)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleCancel = () => {
-    onCancel()
-  }
-  const assigned = participants.reduce((sum, p) => sum + (p.amount || 0), 0)
+  const assigned = localParticipants.reduce((sum, p) => sum + p.amount, 0)
   const remaining = itemTotal - assigned
 
   return (
     <div className="space-y-6 pt-2 pb-4">
       <div className="space-y-5">
-        {participants.map((p, index) => {
-          const amount = p.amount || 0
+        {localParticipants.map((p, index) => {
+          const amount = p.amount
           const colorClass = pastelColors[index % pastelColors.length]
           const colorHex = colorClass.replace('bg-[', '').replace(']', '')
-          
+
           return (
             <div key={p.id} className="space-y-2">
               <div className="flex justify-between items-center">
@@ -76,7 +69,7 @@ export function SplitSlider({
                   {formatCurrency(amount, currency)}
                 </div>
               </div>
-              
+
               <div className="relative w-full h-8 flex items-center">
                 <input
                   type="range"
@@ -84,7 +77,7 @@ export function SplitSlider({
                   max={itemTotal}
                   step={100}
                   value={amount}
-                  onChange={(e) => onAmountChange(p.id, Number(e.target.value))}
+                  onChange={(e) => handleChange(p.id, Number(e.target.value))}
                   className="absolute w-full h-3 appearance-none bg-gray-100 rounded-full outline-none z-10 custom-slider cursor-pointer [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:h-8 [&::-moz-range-thumb]:w-8 [&::-moz-range-thumb]:h-8"
                   style={{
                     '--slider-color': colorHex || '#e5e7eb',
@@ -94,7 +87,7 @@ export function SplitSlider({
                   aria-valuemin={0}
                   aria-valuemax={itemTotal}
                 />
-                <div 
+                <div
                   className={cn("absolute h-3 rounded-full pointer-events-none", colorClass)}
                   style={{ width: `${itemTotal > 0 ? (amount / itemTotal) * 100 : 0}%` }}
                 />
@@ -112,13 +105,12 @@ export function SplitSlider({
           </span>
         </div>
         <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex">
-          {participants.map((p, index) => {
-            const amount = p.amount || 0
-            if (amount <= 0) return null
+          {localParticipants.map((p, index) => {
+            if (p.amount <= 0) return null
             const colorClass = pastelColors[index % pastelColors.length]
-            const percent = itemTotal > 0 ? (amount / itemTotal) * 100 : 0
+            const percent = itemTotal > 0 ? (p.amount / itemTotal) * 100 : 0
             return (
-              <div 
+              <div
                 key={p.id}
                 className={cn("h-full", colorClass)}
                 style={{ width: `${percent}%` }}
@@ -126,6 +118,30 @@ export function SplitSlider({
             )
           })}
         </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving || remaining !== 0}
+          className={cn(
+            "flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors disabled:opacity-50",
+            remaining === 0
+              ? "bg-black text-white hover:bg-gray-800"
+              : "bg-gray-200 text-gray-500 cursor-not-allowed"
+          )}
+        >
+          {isSaving ? 'Menyimpan...' : 'Simpan'}
+        </button>
       </div>
     </div>
   )
