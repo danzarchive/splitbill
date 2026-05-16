@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { ChevronDown, Check } from '@/lib/icons'
 import { formatCurrency, cn } from '@/lib/utils'
 import { QuantityStepper } from './QuantityStepper'
+import { updateItem } from '@/actions/item-actions'
 
 interface Participant {
   id: string
@@ -31,9 +32,11 @@ interface ItemRowAccordionProps {
   pastelColors: string[]
   isSelected?: boolean
   isExpanded: boolean
+  billId: string
   onToggleExpand: () => void
   onToggleSelection?: () => void
   onDelete: () => void
+  onItemUpdated?: () => void
   onSaveSplits: (splits: { participantId: string; amount: number }[]) => Promise<void>
 }
 
@@ -43,16 +46,17 @@ export function ItemRowAccordion({
   pastelColors,
   isSelected,
   isExpanded,
+  billId,
   onToggleExpand,
   onToggleSelection,
   onDelete,
+  onItemUpdated,
   onSaveSplits
 }: ItemRowAccordionProps) {
   const total = item.price * item.quantity
   const pricePerUnit = item.price
 
-  // Calculate current quantities from splits
-  const currentQuantities = useState<Record<string, number>>(() => {
+  const [localQty, setLocalQty] = useState<Record<string, number>>(() => {
     const qty: Record<string, number> = {}
     participants.forEach(p => { qty[p.id] = 0 })
     item.splits.forEach(s => {
@@ -61,15 +65,26 @@ export function ItemRowAccordion({
       }
     })
     return qty
-  })[0]
-
-  const [localQty, setLocalQty] = useState<Record<string, number>>(currentQuantities)
+  })
   const [isSaving, setIsSaving] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editName, setEditName] = useState(item.name)
+  const [editPrice, setEditPrice] = useState(String(item.price / 100))
+  const [editQty, setEditQty] = useState(String(item.quantity))
+  const [editError, setEditError] = useState('')
 
   const totalAssignedQty = Object.values(localQty).reduce((sum, q) => sum + q, 0)
   const isFullyAssigned = totalAssignedQty === item.quantity && item.quantity > 0
-  const isDirty = JSON.stringify(localQty) !== JSON.stringify(currentQuantities)
+  const isDirty = JSON.stringify(localQty) !== JSON.stringify(
+    (() => {
+      const qty: Record<string, number> = {}
+      participants.forEach(p => { qty[p.id] = 0 })
+      item.splits.forEach(s => {
+        if (pricePerUnit > 0) qty[s.participantId] = Math.round(s.amount / pricePerUnit)
+      })
+      return qty
+    })()
+  )
 
   const colorIndex = item.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % pastelColors.length
   const avatarColor = pastelColors[colorIndex]
@@ -94,9 +109,47 @@ export function ItemRowAccordion({
   }, [localQty, participants, pricePerUnit, onSaveSplits])
 
   const handleCancel = useCallback(() => {
-    setLocalQty(currentQuantities)
     onToggleExpand()
-  }, [currentQuantities, onToggleExpand])
+  }, [onToggleExpand])
+
+  async function handleEditSave() {
+    if (!editName.trim()) {
+      setEditError('Nama wajib diisi')
+      return
+    }
+    const priceNum = parseFloat(editPrice)
+    if (isNaN(priceNum) || priceNum <= 0) {
+      setEditError('Harga harus lebih dari 0')
+      return
+    }
+    const qtyNum = parseInt(editQty, 10)
+    if (isNaN(qtyNum) || qtyNum < 1) {
+      setEditError('Jumlah minimal 1')
+      return
+    }
+
+    setIsSaving(true)
+    setEditError('')
+
+    try {
+      const result = await updateItem(item.id, billId, {
+        name: editName.trim(),
+        price: Math.round(priceNum * 100),
+        quantity: qtyNum,
+      })
+
+      if (result.success) {
+        setIsEditing(false)
+        onItemUpdated?.()
+      } else {
+        setEditError(result.error || 'Gagal mengupdate item')
+      }
+    } catch {
+      setEditError('Terjadi kesalahan')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <div className={cn("bg-white rounded-xl overflow-hidden shadow-sm border transition-all duration-200",
@@ -185,73 +238,141 @@ export function ItemRowAccordion({
 
       {isExpanded && (
         <div className="px-5 pb-5 pt-2 border-t border-gray-100 bg-white">
-          <div className="space-y-1">
-            {participants.map((p, index) => (
-              <QuantityStepper
-                key={p.id}
-                participant={p}
-                currentQty={localQty[p.id] || 0}
-                remainingQty={item.quantity - totalAssignedQty + (localQty[p.id] || 0)}
-                pricePerUnit={pricePerUnit}
-                color={pastelColors[index % pastelColors.length]}
-                onQuantityChange={(newQty) => handleQuantityChange(p.id, newQty)}
+          {isEditing ? (
+            /* Edit Mode */
+            <div className="space-y-3">
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nama item"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-gray-400 text-sm"
               />
-            ))}
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <span className={cn("text-sm font-medium",
-                isFullyAssigned ? "text-green-600" : totalAssignedQty > 0 ? "text-orange-500" : "text-gray-400"
-              )}>
-                {isFullyAssigned
-                  ? `✅ ${item.quantity}/${item.quantity} porsi terbagi`
-                  : totalAssignedQty > 0
-                    ? `⚠️ ${totalAssignedQty}/${item.quantity} porsi terbagi`
-                    : `Belum ada porsi dibagi`
-                }
-              </span>
-              {totalAssignedQty > 0 && !isFullyAssigned && (
-                <span className="text-xs text-orange-500">
-                  {item.quantity - totalAssignedQty} porsi tersisa
-                </span>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value)}
+                  placeholder="Harga (Rp)"
+                  min="0"
+                  step="100"
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-gray-400 text-sm"
+                />
+                <input
+                  type="number"
+                  value={editQty}
+                  onChange={(e) => setEditQty(e.target.value)}
+                  placeholder="Qty"
+                  min="1"
+                  className="w-20 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-gray-400 text-sm"
+                />
+              </div>
+              {editError && (
+                <p className="text-xs text-red-500">{editError}</p>
               )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditName(item.name)
+                    setEditPrice(String(item.price / 100))
+                    setEditQty(String(item.quantity))
+                    setEditError('')
+                  }}
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditSave}
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium bg-black text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
             </div>
+          ) : (
+            /* Split Mode */
+            <>
+              <div className="space-y-1">
+                {participants.map((p, index) => (
+                  <QuantityStepper
+                    key={p.id}
+                    participant={p}
+                    currentQty={localQty[p.id] || 0}
+                    remainingQty={item.quantity - totalAssignedQty + (localQty[p.id] || 0)}
+                    pricePerUnit={pricePerUnit}
+                    color={pastelColors[index % pastelColors.length]}
+                    onQuantityChange={(newQty) => handleQuantityChange(p.id, newQty)}
+                  />
+                ))}
+              </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={isSaving}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaving || !isFullyAssigned || !isDirty}
-                className={cn(
-                  "flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors disabled:opacity-50",
-                  isFullyAssigned && isDirty
-                    ? "bg-black text-white hover:bg-gray-800"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                )}
-              >
-                {isSaving ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
-          </div>
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-3">
+                  <span className={cn("text-sm font-medium",
+                    isFullyAssigned ? "text-green-600" : totalAssignedQty > 0 ? "text-orange-500" : "text-gray-400"
+                  )}>
+                    {isFullyAssigned
+                      ? `✅ ${item.quantity}/${item.quantity} porsi terbagi`
+                      : totalAssignedQty > 0
+                        ? `⚠️ ${totalAssignedQty}/${item.quantity} porsi terbagi`
+                        : `Belum ada porsi dibagi`
+                    }
+                  </span>
+                  {totalAssignedQty > 0 && !isFullyAssigned && (
+                    <span className="text-xs text-orange-500">
+                      {item.quantity - totalAssignedQty} porsi tersisa
+                    </span>
+                  )}
+                </div>
 
-          <div className="mt-3 pt-3 border-t border-red-50 flex justify-end">
-            <button
-              type="button"
-              onClick={onDelete}
-              className="text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors"
-            >
-              Hapus Item
-            </button>
-          </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving || !isFullyAssigned || !isDirty}
+                    className={cn(
+                      "flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors disabled:opacity-50",
+                      isFullyAssigned && isDirty
+                        ? "bg-black text-white hover:bg-gray-800"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    )}
+                  >
+                    {isSaving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-md transition-colors"
+                >
+                  Edit Item
+                </button>
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors"
+                >
+                  Hapus Item
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

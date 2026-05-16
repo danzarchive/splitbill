@@ -435,11 +435,13 @@ export function ItemList({ billId, items: serverItems, participants }: Props) {
                 item={item}
                 participants={participants}
                 pastelColors={pastelColors}
+                billId={billId}
                 isSelected={selectedItems.includes(item.id)}
                 isExpanded={isExpanded}
                 onToggleExpand={() => setExpandedItem(isExpanded ? null : item.id)}
                 onToggleSelection={() => toggleItemSelection(item.id)}
                 onDelete={() => handleDelete(item.id)}
+                onItemUpdated={() => router.refresh()}
                 onSaveSplits={async (newSplits) => {
                   setLoadingItemId(item.id)
 
