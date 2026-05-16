@@ -54,14 +54,32 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
         </header>
 
         <main className="px-5 py-4 space-y-4 flex-1">
-          <div className="p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Total</span>
-              <span className="text-xl font-bold text-gray-900">
-                {formatCurrency(totalAmount)}
-              </span>
-            </div>
-            {totalItemCount > 0 && (
+          {/* 1. Peserta — siapa yang patungan */}
+          <Suspense fallback={<SectionSkeleton />}>
+            <ParticipantManager
+              billId={bill.id}
+              participants={bill.participants}
+            />
+          </Suspense>
+
+          {/* 2. Items — apa yang dibagi */}
+          <Suspense fallback={<SectionSkeleton />}>
+            <ItemList
+              billId={bill.id}
+              items={bill.items}
+              participants={bill.participants}
+            />
+          </Suspense>
+
+          {/* 3. Total — hasil dari input user */}
+          {totalItemCount > 0 && (
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Total</span>
+                <span className="text-xl font-bold text-gray-900">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-xs text-gray-400">
                   {bill.taxRate > 0 ? `Termasuk PPN ${bill.taxRate}%` : 'Tanpa PPN'}
@@ -71,39 +89,28 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
                   {assignedItemCount}/{totalItemCount} item dibagi
                 </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <ShareButton billId={bill.id} />
-            <Link
-              href={`/${locale}/${bill.id}/summary`}
-              className="flex items-center justify-center font-medium rounded-lg bg-black text-white hover:bg-gray-800 px-4 py-3 text-base"
-            >
-              Lihat Detail
-            </Link>
-          </div>
+          {/* 4. Actions — aksi setelah melihat total */}
+          {totalItemCount > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              <ShareButton billId={bill.id} />
+              <Link
+                href={`/${locale}/${bill.id}/summary`}
+                className="flex items-center justify-center font-medium rounded-lg bg-black text-white hover:bg-gray-800 px-4 py-3 text-base"
+              >
+                Lihat Detail
+              </Link>
+            </div>
+          )}
 
+          {/* 5. Settings — konfigurasi, jarang diakses */}
           <Suspense fallback={<SectionSkeleton />}>
             <BillSettings
               billId={bill.id}
               taxRate={bill.taxRate}
               serviceRate={bill.serviceRate}
-            />
-          </Suspense>
-
-          <Suspense fallback={<SectionSkeleton />}>
-            <ParticipantManager
-              billId={bill.id}
-              participants={bill.participants}
-            />
-          </Suspense>
-
-          <Suspense fallback={<SectionSkeleton />}>
-            <ItemList
-              billId={bill.id}
-              items={bill.items}
-              participants={bill.participants}
             />
           </Suspense>
         </main>
