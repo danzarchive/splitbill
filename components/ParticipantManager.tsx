@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { addParticipant, removeParticipant } from '@/actions/participant-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { X, UserPlus } from 'lucide-react'
+import { X, UserPlus } from '@/lib/icons'
 
 interface Participant {
   id: string

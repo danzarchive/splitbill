@@ -1,7 +1,7 @@
 'use client'
 
 import { formatCurrency, cn } from '@/lib/utils'
-import { Minus, Plus } from 'lucide-react'
+import { Minus, Plus } from '@/lib/icons'
 
 interface QuantityStepperProps {
   participant: { id: string; name: string }

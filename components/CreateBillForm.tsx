@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { createBill } from '@/actions/bill-actions'
 import { Button } from '@/components/ui/button'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2 } from '@/lib/icons'
 
 export function CreateBillForm() {
   const t = useTranslations('home')

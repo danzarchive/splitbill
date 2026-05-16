@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { updateTaxRates } from '@/actions/bill-actions'
 import { Button } from '@/components/ui/button'
-import { Settings2, Percent, Receipt, ChevronRight } from 'lucide-react'
+import { Settings2, Percent, Receipt, ChevronRight } from '@/lib/icons'
 
 interface Props {
   billId: string

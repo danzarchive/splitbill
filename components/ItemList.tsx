@@ -8,7 +8,7 @@ import { batchAssignSplits, batchRemoveSplits } from '@/actions/split-actions'
 import { distributeEvenly } from '@/lib/calculator'
 import { Button } from '@/components/ui/button'
 import { ItemRowAccordion } from './ItemRowAccordion'
-import { Package, Users, RotateCcw, Square, SquareCheck, X } from 'lucide-react'
+import { Package, Users, RotateCcw, Square, SquareCheck, X } from '@/lib/icons'
 
 interface Participant {
   id: string

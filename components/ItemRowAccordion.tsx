@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check } from '@/lib/icons'
 import { formatCurrency, cn } from '@/lib/utils'
 import { QuantityStepper } from './QuantityStepper'
 

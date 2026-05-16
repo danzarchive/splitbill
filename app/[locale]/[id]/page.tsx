@@ -7,7 +7,7 @@ import { BillSettings } from '@/components/BillSettings'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ShareButton } from '@/components/ShareButton'
 import { formatCurrency } from '@/lib/utils'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/lib/icons'
 import Link from 'next/link'
 
 function SectionSkeleton() {

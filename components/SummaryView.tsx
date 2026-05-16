@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { calculateParticipantTotals } from '@/lib/calculator'
 import Link from 'next/link'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download } from '@/lib/icons'
 
 interface SummaryViewProps {
   bill: {

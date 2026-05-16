@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Globe } from 'lucide-react'
+import { Globe } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 
 export function LanguageToggle() {
